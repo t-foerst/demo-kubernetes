@@ -1,0 +1,17 @@
+clusterName: demo-eks
+region: eu-central-1
+vpcId: vpc-03a5f3d13b7096c46
+
+serviceAccount:
+  create: false
+  name: aws-load-balancer-controller
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
