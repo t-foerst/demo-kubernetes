@@ -1,25 +1,27 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: demo-app
-  namespace: demo-app
+  name: argocd-server
+  namespace: argocd
   annotations:
     kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: demo-cluster
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:398934906881:certificate/d994a8b4-c586-4be3-9478-48d9374e7b12
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:398934906881:certificate/c5833ffa-cb34-465d-94a3-e772579575ee # change this
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/ssl-redirect: "443"
-    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
 spec:
   ingressClassName: alb
   rules:
-    - http:
+    - host: argocd.foerst.haus
+      http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: demo-app
+                name: argocd-server
                 port:
                   number: 80

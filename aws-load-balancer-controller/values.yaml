@@ -1,6 +1,6 @@
 clusterName: demo-eks
 region: eu-central-1
-vpcId: vpc-03a5f3d13b7096c46
+vpcId: vpc-0e8a23d5f01de1028 # change this
 
 serviceAccount:
   create: false

@@ -1,0 +1,24 @@
+# Helm values für argo-helm/argo-cd
+# Quelle: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+
+redis-ha:
+  enabled: false
+
+controller:
+  replicas: 1
+
+server:
+  replicas: 1
+  service:
+    type: ClusterIP
+
+repoServer:
+  replicas: 1
+
+applicationSet:
+  enabled: true
+
+configs:
+  params:
+    # Demo: ArgoCD-API/UI per HTTP statt TLS (Terminierung würde sonst über die ALB laufen)
+    server.insecure: true

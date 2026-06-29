@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-foerst/demo-kubernetes.git
+    targetRevision: main
+    path: app/overlays/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-app-argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
