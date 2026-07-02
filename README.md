@@ -2,6 +2,8 @@
 
 Manifeste für ein AWS EKS Cluster
 
+> **Bei jedem Neu-Hochfahren des Clusters:** `vpcId` in `aws-load-balancer-controller/values.yaml` neu setzen (VPC wird von Terraform neu erstellt). Ebenso `alb.ingress.kubernetes.io/certificate-arn` in `app/base/ingress.yaml` und `argocd/ingress.yaml` auf die neue ACM-Cert-ARN anpassen.
+
 ## 1. AWS Load Balancer Controller installieren
 
 ```bash
@@ -15,8 +17,6 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -f aws-load-balancer-controller/values.yaml
 ```
 
-> **Bei jedem Neu-Hochfahren des Clusters:** `vpcId` in `aws-load-balancer-controller/values.yaml` neu setzen (VPC wird von Terraform neu erstellt). Ebenso `alb.ingress.kubernetes.io/certificate-arn` in `app/base/ingress.yaml` und `argocd/ingress.yaml` auf die neue ACM-Cert-ARN anpassen.
-
 ## 2. App deployen
 
 `app/base/` (Deployment, Service, Ingress) wird per Kustomize-Overlay in zwei Namespaces ausgerollt:
@@ -25,8 +25,16 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 - `app/overlays/cicd/` → Namespace `demo-app-cicd`, klassisch per CI/CD-Pipeline deployed
 
 ```bash
+kubectl create namespace demo-app-cicd
+```
+- SECRET_ARN in pipeline anpassen
+- CI/CD Pipeline deployt `app/overlays/cicd/` nach `demo-app-cicd`
+
+```bash
 kubectl apply -k app/overlays/cicd
 ```
+
+```bash
 
 Der `argocd`-Namespace wird nicht manuell deployed, sondern über die ArgoCD-Application aus Abschnitt 3 synchronisiert.
 
