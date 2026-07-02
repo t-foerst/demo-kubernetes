@@ -4,6 +4,8 @@ namespace: demo-app-argocd
 resources:
   - namespace.yaml
   - ../../base
+  - configmap.yaml
+  - external-secret.yaml
 patches:
   - target:
       kind: Ingress

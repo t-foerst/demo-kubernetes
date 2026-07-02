@@ -52,6 +52,8 @@ helm install argocd argo/argo-cd \
 
 kubectl apply -f argocd/ingress.yaml
 kubectl apply -f argocd/application-demo-app.yaml
+kubectl apply -f argocd/application-external-secrets.yaml
+kubectl apply -f argocd/application-infrastructure.yaml
 ```
 
 Initiales Admin-Passwort:
