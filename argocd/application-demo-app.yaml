@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/t-foerst/demo-kubernetes.git
     targetRevision: main
-    path: app/overlays/argocd
+    path: gitops
   destination:
     server: https://kubernetes.default.svc
     namespace: demo-app-argocd
