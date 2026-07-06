@@ -30,9 +30,6 @@ kubectl create namespace demo-app-cicd
 - SECRET_ARN in pipeline anpassen
 - CI/CD Pipeline deployt `app/overlays/cicd/` nach `demo-app-cicd`
 
-```bash
-kubectl apply -k app/overlays/cicd
-```
 
 ```bash
 
