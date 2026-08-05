@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: demo-app
   minReplicas: 2
-  maxReplicas: 4
+  maxReplicas: 20
   metrics:
     - type: Resource
       resource:
