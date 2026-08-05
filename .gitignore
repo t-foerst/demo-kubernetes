@@ -1,0 +1,2 @@
+# Echtes Secret für manuelles Deployment - nie committen, siehe manual/secret.example.yaml
+manual/secret.yaml
