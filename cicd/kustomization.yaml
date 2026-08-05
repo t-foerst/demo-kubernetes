@@ -5,6 +5,8 @@ resources:
   - service.yaml
   - ingress.yaml
   - configmap.yaml
+  - hpa.yaml
+  - pdb.yaml
 images:
   - name: ghcr.io/t-foerst/demo-app
     newTag: latest

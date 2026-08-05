@@ -76,3 +76,15 @@ Nach dem Deployment den (gemeinsamen) ALB-Hostnamen ermitteln und für alle drei
 ```bash
 kubectl get ingress -n argocd argocd-server
 ```
+
+## 5. High Availability & Autoscaling
+
+Beide App-Deployments (`cicd/deployment.yaml`, `gitops/deployment.yaml`) sind für HA über die zwei EKS-Worker-Nodes (je einer pro AZ) ausgelegt:
+
+- **`topologySpreadConstraints`** (Key `topology.kubernetes.io/zone`, `whenUnsatisfiable: DoNotSchedule`) verteilt die Pods zwingend auf beide AZs/Nodes, statt beide auf denselben Node zu packen.
+- **`PodDisruptionBudget`** (`minAvailable: 1`) verhindert, dass bei Node-Drain/-Wartung beide Pods gleichzeitig entfernt werden.
+- **`HorizontalPodAutoscaler`** (`minReplicas: 2`, `maxReplicas: 4`, CPU-Ziel 70 %) skaliert bei Last zusätzliche Pods innerhalb der bestehenden zwei Nodes hoch (kein Node-Autoscaling nötig).
+
+Voraussetzung für die HPA ist ein laufender `metrics-server` im Cluster (liefert die CPU-Metriken); auf EKS ggf. als Addon oder per Helm-Chart nachinstallieren, falls noch nicht vorhanden.
+
+**GitOps-Hinweis:** Da der HPA `spec.replicas` des Deployments verändert, ignoriert die ArgoCD-Application (`argocd/application-demo-app.yaml`) dieses Feld per `ignoreDifferences`, damit `selfHeal` die HPA-Skalierung nicht laufend zurücksetzt. Im `cicd`-Namespace gibt es diesen Schutz nicht — jeder Pipeline-Deploy setzt `replicas` kurzzeitig auf den in Git hinterlegten Wert zurück, bis der HPA erneut hochskaliert.

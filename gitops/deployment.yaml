@@ -21,6 +21,13 @@ spec:
       labels:
         app: demo-app
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: demo-app
       containers:
         - name: demo-app
           image: ghcr.io/t-foerst/demo-app:c95658d0792c9c531d59dd6f5dcec4b06d26dd2a
