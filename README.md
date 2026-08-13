@@ -28,13 +28,11 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl apply -f argocd/application-infrastructure.yaml
    ```
    Admin-Passwort: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d`
-   → `gitops/` wird danach automatisch von ArgoCD deployed.
+   → `gitops/` wird danach automatisch von ArgoCD deployed. `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig).
 
 4. **`cicd/` und `manual/` deployen:**
-   ESO-Deployen (für manual)
    ```bash
    kubectl apply -k cicd/
-
    kubectl apply -k manual/
    ```
 
