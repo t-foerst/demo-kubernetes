@@ -4,9 +4,11 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
 
 ## Checkliste nach Cluster-Neustart
 
-1. **Werte aktualisieren** (VPC/ACM-Zertifikat werden von Terraform neu erstellt):
+1. **Werte aktualisieren** (VPC/ACM-Zertifikat/RDS-Secret-ARN werden von Terraform neu erstellt):
    - `vpcId` in `aws-load-balancer-controller/values.yaml`
    - `alb.ingress.kubernetes.io/certificate-arn` in `cicd/ingress.yaml`, `gitops/ingress.yaml`, `manual/ingress.yaml`, `argocd/ingress.yaml`
+   - `remoteRef.key` (RDS-Secret-ARN) in `manual/external-secret.yaml`, `gitops/external-secret.yaml`
+   - `DB_SECRET_ARN` GitHub-Actions-Variable im Repo `demo-app` (`gh variable set DB_SECRET_ARN --repo t-foerst/demo-app --body "<arn>"`) — für `cicd/`
 
 2. **AWS Load Balancer Controller + metrics-server installieren:**
    ```bash
