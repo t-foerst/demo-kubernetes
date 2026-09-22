@@ -19,28 +19,19 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
    ```
 
-3. **ArgoCD installieren:**
+3. **ArgoCD installieren** (nur Tooling, deployed die App noch nicht):
    ```bash
    kubectl apply -f argocd/namespace.yaml
    helm repo add argo https://argoproj.github.io/argo-helm && helm repo update argo
    helm install argocd argo/argo-cd -n argocd -f argocd/values.yaml
    kubectl apply -f argocd/ingress.yaml
-   kubectl apply -f argocd/application-demo-app.yaml
    kubectl apply -f argocd/application-external-secrets.yaml
    kubectl apply -f argocd/application-infrastructure.yaml
    ```
    Admin-Passwort: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d`
-   → `gitops/` wird danach automatisch von ArgoCD deployed. `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig).
+   → `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig). `gitops/` selbst wird erst deployed, wenn `argocd/application-demo-app.yaml` angewendet wird (siehe Schritt 5).
 
-4. **`cicd/` und `manual/` deployen:**
-   ```bash
-   kubectl apply -f cicd/namespace.yaml
-   kubectl apply -k cicd/
-   kubectl apply -k manual/
-   ```
-   > `cicd/namespace.yaml` bewusst **nicht** Teil von `cicd/kustomization.yaml` und muss einmalig admin-seitig angelegt werden: die `github-actions-deploy`-IAM-Rolle hat nur `AmazonEKSEditPolicy` (namespaced, kein Namespace-Create/-Patch) — der CI-Workflow deployt danach nur noch in den bereits existierenden Namespace.
-
-5. **ALB-Hostname ermitteln und in Terraform (Route53) eintragen** — alle vier Ingresses teilen sich einen ALB (`group.name: demo-cluster`):
+4. **ALB-Hostname ermitteln und in Terraform (Route53) eintragen** — alle vier Ingresses teilen sich einen ALB (`group.name: demo-cluster`), der ALB entsteht bereits durch `argocd/ingress.yaml` aus Schritt 3:
 
    | Host | Namespace |
    |---|---|
@@ -52,3 +43,19 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    ```bash
    kubectl get ingress -n argocd argocd-server
    ```
+
+5. **App deployen (optional)** — drei unabhängige Wege, keiner ist Voraussetzung für einen anderen:
+   ```bash
+   # Manual
+   kubectl apply -k manual/
+
+   # CI/CD (Namespace einmalig admin-seitig vorbereiten, s.u.)
+   kubectl apply -f cicd/namespace.yaml
+   kubectl apply -k cicd/
+
+   # ArgoCD/GitOps
+   kubectl apply -f argocd/application-demo-app.yaml
+   ```
+   > `cicd/namespace.yaml` bewusst **nicht** Teil von `cicd/kustomization.yaml` und muss einmalig admin-seitig angelegt werden: die `github-actions-deploy`-IAM-Rolle hat nur `AmazonEKSEditPolicy` (namespaced, kein Namespace-Create/-Patch) — der CI-Workflow deployt danach nur noch in den bereits existierenden Namespace.
+
+   Ausführliche Anleitung inkl. Voraussetzungen je Weg: Obsidian-Vault, `Studium/Kubernetes Cluster (Uni) - Anleitung.md`.
