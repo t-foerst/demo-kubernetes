@@ -8,7 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/group.name: demo-cluster
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:398934906881:certificate/ad366644-c127-46d0-a59c-63505ab3b33f
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:398934906881:certificate/c2cef670-c29a-4275-bfa5-a93e37f07e1f
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
