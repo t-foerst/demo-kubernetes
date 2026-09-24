@@ -22,9 +22,14 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
 3. **ArgoCD installieren** (nur Tooling, deployed die App noch nicht):
    ```bash
    kubectl apply -f argocd/namespace.yaml
-   # Webhook-Secret (wird von argocd/values.yaml nur per `$argocd-webhook-github:secret` referenziert, liegt nicht im Repo)
-   kubectl create secret generic argocd-webhook-github -n argocd \
-     --from-literal=secret="$(openssl rand -hex 32)"
+   # Webhook-Secret (für Schritt 5): fest, liegt im lokalen Schlüsselbund, nicht im Repo — argocd/values.yaml
+   # referenziert es nur per `$argocd-webhook-github:secret`. Einmalig (nicht pro Neustart) selbstgewählt ablegen,
+   # fragt interaktiv nach dem Wert (z. B. aus `openssl rand -hex 32`):
+   #   secret-tool store --label="ArgoCD GitHub-Webhook (demo-kubernetes)" service argocd-webhook repo demo-kubernetes
+   WEBHOOK_SECRET=$(secret-tool lookup service argocd-webhook repo demo-kubernetes)
+   test -n "$WEBHOOK_SECRET" && kubectl create secret generic argocd-webhook-github -n argocd \
+     --from-literal=secret="$WEBHOOK_SECRET" || echo "FEHLER: Webhook-Secret nicht im Schlüsselbund"
+   unset WEBHOOK_SECRET
    kubectl label secret argocd-webhook-github -n argocd app.kubernetes.io/part-of=argocd
    helm repo add argo https://argoproj.github.io/argo-helm && helm repo update argo
    helm install argocd argo/argo-cd -n argocd -f argocd/values.yaml
@@ -48,12 +53,14 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl get ingress -n argocd argocd-server
    ```
 
-5. **GitHub-Webhook für ArgoCD einrichten/aktualisieren** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). Braucht den DNS-Eintrag aus Schritt 4. Das Secret ist nach jedem Cluster-Neustart neu, deshalb legt das Snippet den Hook an oder aktualisiert den bestehenden:
+5. **GitHub-Webhook für ArgoCD** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). **Nur einmalig bzw. bei Secret-Wechsel nötig**, nicht nach jedem Cluster-Neustart: Secret und Hook-URL bleiben gleich, der Hook in GitHub überdauert den Cluster (Zustellungen schlagen nur fehl, solange der Cluster aus ist). Das Secret kommt aus dem Schlüsselbund (siehe Schritt 3). Hook anlegen oder aktualisieren:
    ```bash
    HOOK_URL=https://argocd.foerst.haus/api/webhook
-   WEBHOOK_SECRET=$(kubectl get secret argocd-webhook-github -n argocd -o jsonpath='{.data.secret}' | base64 -d)
+   WEBHOOK_SECRET=$(secret-tool lookup service argocd-webhook repo demo-kubernetes)
    HOOK_ID=$(gh api repos/t-foerst/demo-kubernetes/hooks --jq ".[] | select(.config.url==\"$HOOK_URL\") | .id")
-   if [ -z "$HOOK_ID" ]; then
+   if [ -z "$WEBHOOK_SECRET" ]; then
+     echo "FEHLER: Webhook-Secret nicht im Schlüsselbund"
+   elif [ -z "$HOOK_ID" ]; then
      gh api repos/t-foerst/demo-kubernetes/hooks -f name=web -f 'events[]=push' -F active=true \
        -f "config[url]=$HOOK_URL" -f 'config[content_type]=json' -f "config[secret]=$WEBHOOK_SECRET" >/dev/null
    else
