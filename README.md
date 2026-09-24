@@ -34,7 +34,7 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    Admin-Passwort: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d`
    → `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig). `gitops/` selbst wird erst deployed, wenn `argocd/application-demo-app.yaml` angewendet wird (siehe Schritt 6).
 
-4. **ALB-Hostname ermitteln und in Terraform (Route53) eintragen** — alle vier Ingresses teilen sich einen ALB (`group.name: demo-cluster`), der ALB entsteht bereits durch `argocd/ingress.yaml` aus Schritt 3:
+4. **ALB-Hostname ermitteln und in Terraform (Cloudflare-DNS, Variable `alb_hostname`) eintragen** — alle vier Ingresses teilen sich einen ALB (`group.name: demo-cluster`), der ALB entsteht bereits durch `argocd/ingress.yaml` aus Schritt 3:
 
    | Host | Namespace |
    |---|---|
@@ -50,8 +50,8 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
 5. **GitHub-Webhook für ArgoCD** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). **Nur einmalig nötig**, nicht nach jedem Cluster-Neustart: Secret (fester Wert aus `secrets/`) und Hook-URL bleiben gleich, der Hook in GitHub überdauert den Cluster (Zustellungen schlagen nur fehl, solange der Cluster aus ist). Wert aus `secrets/argocd-webhook-github-secret.yaml` übernehmen:
    ```bash
    gh api repos/t-foerst/demo-kubernetes/hooks -f name=web -f 'events[]=push' \
-     -f config[url]=https://argocd.foerst.haus/api/webhook -f config[content_type]=json \
-     -f config[secret]="$(kubectl get secret argocd-webhook-github -n argocd -o jsonpath='{.data.secret}' | base64 -d)"
+     -f 'config[url]=https://argocd.foerst.haus/api/webhook' -f 'config[content_type]=json' \
+     -f "config[secret]=$(kubectl get secret argocd-webhook-github -n argocd -o jsonpath='{.data.secret}' | base64 -d)"
    ```
    Prüfen: GitHub → `demo-kubernetes` → Settings → Webhooks → Recent Deliveries (HTTP 200) bzw. `kubectl logs -n argocd deploy/argocd-server | grep -i webhook`.
    > Für Messungen in der Standardkonfiguration ohne Webhook (Bachelorarbeit, Variante B1) den Hook deaktivieren statt löschen: `gh api -X PATCH repos/t-foerst/demo-kubernetes/hooks/<id> -F active=false` (mit `-F active=true` wieder an; ID per `gh api repos/t-foerst/demo-kubernetes/hooks --jq '.[].id'`). ArgoCD fällt dann auf das Polling zurück.
