@@ -47,7 +47,7 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl get ingress -n argocd argocd-server
    ```
 
-5. **GitHub-Webhook für ArgoCD** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). **Nur einmalig nötig**, nicht nach jedem Cluster-Neustart: Secret (fester Wert aus `secrets/`) und Hook-URL bleiben gleich, der Hook in GitHub überdauert den Cluster (Zustellungen schlagen nur fehl, solange der Cluster aus ist). Wert aus `secrets/argocd-webhook-github-secret.yaml` übernehmen:
+5. **GitHub-Webhook für ArgoCD** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). **Nur einmalig nötig**, nicht nach jedem Cluster-Neustart: Secret (fester Wert aus `secrets/`) und Hook-URL bleiben gleich, der Hook in GitHub überdauert den Cluster (Zustellungen schlagen nur fehl, solange der Cluster aus ist). Der Wert wird aus dem in Schritt 3 angelegten Cluster-Secret gelesen; die `config[...]`-Argumente müssen gequotet bleiben (zsh: sonst `no matches found`):
    ```bash
    gh api repos/t-foerst/demo-kubernetes/hooks -f name=web -f 'events[]=push' \
      -f 'config[url]=https://argocd.foerst.haus/api/webhook' -f 'config[content_type]=json' \
