@@ -22,3 +22,10 @@ configs:
   params:
     # Demo: ArgoCD-API/UI per HTTP statt TLS (Terminierung würde sonst über die ALB laufen)
     server.insecure: true
+  cm:
+    # /api/webhook hat kein Rate-Limiting — Payload-Größe begrenzen (Default 50 MB, GitHub-Push-Events sind wenige KB)
+    webhook.maxPayloadSizeMB: 1
+  secret:
+    # GitHub-Webhook (Push → sofortiger Refresh statt ~3 min Polling). Nur Verweis auf ein separates
+    # Secret (`$<secret>:<key>`), der eigentliche Wert liegt nicht im Repo — siehe README Schritt 3 + 5
+    githubSecret: "$argocd-webhook-github:secret"

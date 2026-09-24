@@ -22,6 +22,10 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
 3. **ArgoCD installieren** (nur Tooling, deployed die App noch nicht):
    ```bash
    kubectl apply -f argocd/namespace.yaml
+   # Webhook-Secret (wird von argocd/values.yaml nur per `$argocd-webhook-github:secret` referenziert, liegt nicht im Repo)
+   kubectl create secret generic argocd-webhook-github -n argocd \
+     --from-literal=secret="$(openssl rand -hex 32)"
+   kubectl label secret argocd-webhook-github -n argocd app.kubernetes.io/part-of=argocd
    helm repo add argo https://argoproj.github.io/argo-helm && helm repo update argo
    helm install argocd argo/argo-cd -n argocd -f argocd/values.yaml
    kubectl apply -f argocd/ingress.yaml
@@ -29,7 +33,7 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl apply -f argocd/application-infrastructure.yaml
    ```
    Admin-Passwort: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d`
-   → `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig). `gitops/` selbst wird erst deployed, wenn `argocd/application-demo-app.yaml` angewendet wird (siehe Schritt 5).
+   → `application-external-secrets.yaml` + `application-infrastructure.yaml` bringen den External Secrets Operator inkl. `ClusterSecretStore` mit, den `gitops/` und `manual/` beide über `ExternalSecret` nutzen (kein manuelles Secret nötig). `gitops/` selbst wird erst deployed, wenn `argocd/application-demo-app.yaml` angewendet wird (siehe Schritt 6).
 
 4. **ALB-Hostname ermitteln und in Terraform (Route53) eintragen** — alle vier Ingresses teilen sich einen ALB (`group.name: demo-cluster`), der ALB entsteht bereits durch `argocd/ingress.yaml` aus Schritt 3:
 
@@ -44,7 +48,24 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl get ingress -n argocd argocd-server
    ```
 
-5. **App deployen (optional)** — drei unabhängige Wege, keiner ist Voraussetzung für einen anderen:
+5. **GitHub-Webhook für ArgoCD einrichten/aktualisieren** — Push auf `demo-kubernetes` löst sofort einen Refresh aus statt erst nach dem Poll-Intervall (~3 min). Braucht den DNS-Eintrag aus Schritt 4. Das Secret ist nach jedem Cluster-Neustart neu, deshalb legt das Snippet den Hook an oder aktualisiert den bestehenden:
+   ```bash
+   HOOK_URL=https://argocd.foerst.haus/api/webhook
+   WEBHOOK_SECRET=$(kubectl get secret argocd-webhook-github -n argocd -o jsonpath='{.data.secret}' | base64 -d)
+   HOOK_ID=$(gh api repos/t-foerst/demo-kubernetes/hooks --jq ".[] | select(.config.url==\"$HOOK_URL\") | .id")
+   if [ -z "$HOOK_ID" ]; then
+     gh api repos/t-foerst/demo-kubernetes/hooks -f name=web -f 'events[]=push' -F active=true \
+       -f "config[url]=$HOOK_URL" -f 'config[content_type]=json' -f "config[secret]=$WEBHOOK_SECRET" >/dev/null
+   else
+     gh api -X PATCH repos/t-foerst/demo-kubernetes/hooks/$HOOK_ID -F active=true \
+       -f "config[url]=$HOOK_URL" -f 'config[content_type]=json' -f "config[secret]=$WEBHOOK_SECRET" >/dev/null
+   fi
+   unset WEBHOOK_SECRET
+   ```
+   Prüfen: GitHub → `demo-kubernetes` → Settings → Webhooks → Recent Deliveries (HTTP 200) bzw. `kubectl logs -n argocd deploy/argocd-server | grep -i webhook`.
+   > Für Messungen in der Standardkonfiguration ohne Webhook (Bachelorarbeit, Variante B1) den Hook deaktivieren statt löschen: `gh api -X PATCH repos/t-foerst/demo-kubernetes/hooks/$HOOK_ID -F active=false` (mit `-F active=true` wieder an). ArgoCD fällt dann auf das Polling zurück.
+
+6. **App deployen (optional)** — drei unabhängige Wege, keiner ist Voraussetzung für einen anderen:
    ```bash
    # Manual
    kubectl apply -k manual/
