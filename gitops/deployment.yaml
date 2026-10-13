@@ -30,7 +30,7 @@ spec:
               app: demo-app
       containers:
         - name: demo-app
-          image: ghcr.io/t-foerst/demo-app:b0eca31b65beda8ef1f7cf41c166feb2ea1da533
+          image: ghcr.io/t-foerst/demo-app:46df8cb73608e71d74559b0d50f5f024e5d37c71
           imagePullPolicy: Always
           ports:
             - name: http
