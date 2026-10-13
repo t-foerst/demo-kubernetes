@@ -15,8 +15,8 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl apply -f aws-load-balancer-controller/service-account.yaml
    helm repo add eks https://aws.github.io/eks-charts && helm repo update eks
    helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-     -n kube-system -f aws-load-balancer-controller/values.yaml
-   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+     -n kube-system --version 3.6.0 -f aws-load-balancer-controller/values.yaml
+   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml
    ```
 
 3. **ArgoCD installieren** (nur Tooling, deployed die App noch nicht):
@@ -24,7 +24,7 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    kubectl apply -f argocd/namespace.yaml
    kubectl apply -f secrets/argocd-webhook-github-secret.yaml   # Webhook-Secret für Schritt 5, siehe unten
    helm repo add argo https://argoproj.github.io/argo-helm && helm repo update argo
-   helm install argocd argo/argo-cd -n argocd -f argocd/values.yaml
+   helm install argocd argo/argo-cd -n argocd --version 10.10.3 -f argocd/values.yaml
    kubectl apply -f argocd/ingress.yaml
    kubectl apply -f argocd/application-external-secrets.yaml
    kubectl apply -f argocd/application-infrastructure.yaml
@@ -70,4 +70,18 @@ Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`
    ```
    > `cicd/namespace.yaml` bewusst **nicht** Teil von `cicd/kustomization.yaml` und muss einmalig admin-seitig angelegt werden: die `github-actions-deploy`-IAM-Rolle hat nur `AmazonEKSEditPolicy` (namespaced, kein Namespace-Create/-Patch) — der CI-Workflow deployt danach nur noch in den bereits existierenden Namespace.
 
+   > `cicd/` und `gitops/` haben bewusst **keine HPA** (fest 2 Replicas), und `argocd/application-demo-app.yaml` hat kein `ignoreDifferences` auf `/spec/replicas`. Sonst würde die HPA bzw. Argo CD einen Replica-Drift selbst zurücksetzen bzw. ignorieren (Drift-Messung D1, Bachelorarbeit). `manual/` behält seine HPA.
+
    Ausführliche Anleitung inkl. Voraussetzungen je Weg: Obsidian-Vault, `Studium/Kubernetes Cluster (Uni) - Anleitung.md`.
+
+## Gepinnte Versionen
+
+| Komponente | Version | wo |
+|---|---|---|
+| Argo CD (Helm-Chart `argo/argo-cd`) | 10.10.3 (Argo CD v3.5.5) | `helm install … --version` (Schritt 3) |
+| AWS Load Balancer Controller (Helm-Chart `eks/aws-load-balancer-controller`) | 3.6.0 | `helm install … --version` (Schritt 2) |
+| External Secrets Operator (Helm-Chart) | 0.10.7 | `argocd/application-external-secrets.yaml` |
+| metrics-server | v0.9.0 | Manifest-URL (Schritt 2) |
+
+Versionen nur bewusst ändern: Sie sind Kontrollvariablen der Messungen (Bachelorarbeit, Study Protocol 4.2).
+
