@@ -2,6 +2,16 @@
 
 Manifeste für ein AWS EKS Cluster: AWS Load Balancer Controller, ArgoCD, App (`cicd/`, `gitops/`, `manual/`).
 
+Teil meiner Bachelorarbeit „GitOps-basierte vs. pipelinebasierte Deployments in Kubernetes“ (TH Köln, 2026). Dieselbe [Beispielanwendung](https://github.com/t-foerst/demo-app) wird auf einem gemeinsamen EKS-Cluster auf drei Wegen ausgerollt, jeweils in einem eigenen Namespace:
+
+| Ordner | Deploy-Weg | Namespace |
+|---|---|---|
+| `cicd/` | Pipeline: GitHub Actions baut das Image und wendet die Manifeste per `kubectl` an (Workflow in `demo-app`) | `demo-app-cicd` |
+| `gitops/` | GitOps: Argo CD gleicht den Cluster fortlaufend mit diesem Repo ab | `demo-app-argocd` |
+| `manual/` | Referenz: manuell per `kubectl apply -k` | `demo-app-manual` |
+
+Die Infrastruktur darunter (VPC, EKS, RDS, IAM, DNS) liegt in [demo-terraform](https://github.com/t-foerst/demo-terraform). Die Commits „Fehlerversion einführen“ und deren Reverts in diesem Repo und in `demo-app` stammen aus den Rollback-Messungen der Arbeit.
+
 ## Checkliste nach Cluster-Neustart
 
 1. **Werte aktualisieren** (VPC/ACM-Zertifikat/RDS-Secret-ARN werden von Terraform neu erstellt):
